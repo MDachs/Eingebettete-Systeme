@@ -27,12 +27,15 @@ void loop() {
 void setRGB(float red, float green, float blue) {
   if ( red > 1.0 || red < 0.0) {
     Serial.println("Error: Argument  1 value must be within range 0.0 and 1.0");
+    return;
   }
   if ( green > 1.0 || green < 0.0) {
     Serial.println("Error: Argument  2 value must be within range 0.0 and 1.0");
+    return;
   }
   if ( blue > 1.0 || blue < 0.0) {
     Serial.println("Error: Argument  3 value must be within range 0.0 and 1.0");
+    return;
   }
 
   analogWrite(9, (255.0 * (1 - red)));

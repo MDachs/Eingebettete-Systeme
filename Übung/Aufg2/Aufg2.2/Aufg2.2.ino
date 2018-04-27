@@ -10,8 +10,8 @@ int last5Count = 0;
 
 void entprellen(void)
 {
-  int new3State = digitalRead(3);
-  int new5State = digitalRead(5);
+  int new3State = digitalRead(31);
+  int new5State = digitalRead(43);
   if (new3State == LOW && last3State == HIGH) {
     //Pressed 3
     last3Count = 0;
