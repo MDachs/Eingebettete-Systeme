@@ -5,8 +5,8 @@ const int REDPIN = 9;
 const int GREENPIN = 8;
 const int BLUEPIN = 7;
 
-const int BTN1PIN = 31;
-const int BTN2PIN = 43;
+const int BTN2PIN = 31;
+const int BTN1PIN = 43;
 
 const int PWMPIN = 6;
 const int IN1PIN = 47;
@@ -17,6 +17,8 @@ const int DIRECTION = 0;
 int settingState = DIRECTION;
 
 int powerState = 0;
+
+bool block = false;
 
 const int CW = 0;
 const int CCW = 1;
@@ -48,23 +50,7 @@ void setup() {
 }
 
 void loop() {
-  static int last1State = HIGH;
-  static int last2State = HIGH;
-
-  if (stateFirst == LOW && stateSecond == LOW && (last1State == HIGH || last2State == HIGH)) {
-    settingState = !settingState;
-    if (settingState == DIRECTION) {
-      setRGB(0.0, 1.0, 0.0);
-    } else {
-      setRGB(1.0, 0.0, 0.0);
-    }
-    printStatus();
-  }
-
-  analogWrite(PWMPIN, 255 / powerState);
-
-  last1State = stateFirst;
-  last2State = stateSecond;
+  analogWrite(PWMPIN, (255.0 / 100) * powerState);
 }
 
 
@@ -113,6 +99,17 @@ void entprellen(void)
 void firstReleased() {
   stateFirst = HIGH;
 
+  if (block == true) {
+    block = false;
+    return;
+  }
+
+  if (stateSecond == LOW) {
+    changeState();
+    block = true;
+    return;
+  }
+
   if (settingState == DIRECTION) {
     switch (directionState) {
       case CW:
@@ -139,6 +136,17 @@ void firstReleased() {
 void secondReleased() {
   stateSecond = HIGH;
 
+  if (block == true) {
+    block = false;
+    return;
+  }
+
+  if (stateFirst == LOW) {
+    changeState();
+    block = true;
+    return;
+  }
+
   if (settingState == DIRECTION) {
     switch (directionState) {
       case CCW:
@@ -150,7 +158,7 @@ void secondReleased() {
         directionState = CW;
         digitalWrite(IN1PIN, HIGH);
         digitalWrite(IN2PIN, LOW);
-       printStatus();
+        printStatus();
         break;
     }
   } else {
@@ -167,6 +175,16 @@ void firstPressed() {
 
 void secondPressed() {
   stateSecond = LOW;
+}
+
+void changeState() {
+  settingState = !settingState;
+  if (settingState == DIRECTION) {
+    setRGB(0.0, 1.0, 0.0);
+  } else {
+    setRGB(1.0, 0.0, 0.0);
+  }
+  printStatus();
 }
 
 void setRGB(float red, float green, float blue) {
