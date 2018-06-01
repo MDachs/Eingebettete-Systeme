@@ -284,12 +284,11 @@ void parser(char newChar) {
     }
     else if (befehl == "setContrast" && parametercount == 1) {
       float con = parameterarray[0]*100.0;
-      float contrast = (64.0/100.0)*con;
-      //printf("Contrast= %f \n", con);
-      Serial.println(contrast);
+      float contrast = (127.0/100.0)*con;
       digitalWrite(PIN_DC, LOW);
       SPI.beginTransaction(PIN_CS, SPISettings(1000000, MSBFIRST, SPI_MODE0));
-      SPI.transfer(PIN_CS, 128 + (int)((64.0/100)*con)); // SET CONTRAST (V_OP = 6,18 V)
+      SPI.transfer(PIN_CS, 0x21);// FUNCTION SET (extended instruction set)
+      SPI.transfer(PIN_CS, 128 + contrast)); // SET CONTRAST (V_OP = 6,18 V)
       SPI.endTransaction();
 
       digitalWrite(PIN_DC, HIGH);
