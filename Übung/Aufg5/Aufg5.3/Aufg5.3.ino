@@ -124,7 +124,7 @@ void setup() {
   SPI.beginTransaction(PIN_CS, SPISettings(1000000, MSBFIRST, SPI_MODE0));
   SPI.transfer(PIN_CS, 0x21);// FUNCTION SET (extended instruction set)
   SPI.transfer(PIN_CS, 0x13);// SET BIAS (1:48 MUX, 1/8 BIAS)
-  SPI.transfer(PIN_CS, 0xBF);// SET CONTRAST (V_OP = 6,18 V)
+  SPI.transfer(PIN_CS, 0xC0);// SET CONTRAST (V_OP = 6,18 V)
   SPI.transfer(PIN_CS, 0x04);// SET TEMPERATURE COEFFICIENT
   SPI.transfer(PIN_CS, 0x20);// FUNCTION SET (normal instruction set)
   SPI.transfer(PIN_CS, 0x0C);// SET DISPLAY MODE (normal)
@@ -144,7 +144,7 @@ void setup() {
     SPI.transfer(PIN_CS, 0x00);
     SPI.endTransaction();
   }
-  
+
 }
 
 void loop() {
@@ -153,28 +153,32 @@ void loop() {
     SPI.transfer(PIN_CS, buffer[i]);
     SPI.endTransaction();
   }
-
   delay(500);
-  runStudentIdDemo();
-  
+
+  while (Serial.available() > 0) {
+    char ch = Serial.read();
+    //Serial.write(ch);
+    parser(ch);
+  }
+
 }
 
-void runStudentIdDemo(){
+void runStudentIdDemo() {
   clearDisplay();
-  printString(0,0,"Meik");
-  printString(0,8,"Dachs");
-  printString(0,16,"6005245");
+  printString(0, 0, "Meik");
+  printString(0, 8, "Dachs");
+  printString(0, 16, "6005245");
   updateDisplay();
   delay(5000);
   clearDisplay();
-  printString(0,0,"Alexander");
-  printString(0,8,"Lunge");
-  printString(0,16,"6813791");
+  printString(0, 0, "Alexander");
+  printString(0, 8, "Lunge");
+  printString(0, 16, "6813791");
   updateDisplay();
   delay(5000);
 }
 
-void updateDisplay(){
+void updateDisplay() {
   for (int i = 0; i < 84 * 6; i++) {
     SPI.beginTransaction(PIN_CS, SPISettings(1000000, MSBFIRST, SPI_MODE0));
     SPI.transfer(PIN_CS, buffer[i]);
@@ -182,7 +186,7 @@ void updateDisplay(){
   }
 }
 
-void clearDisplay(){
+void clearDisplay() {
   for (int i = 0; i < 84 * 6; i++) {
     buffer[i] = 0x00;
   }
@@ -198,7 +202,7 @@ void setPixel(int x , int y, int value) {
   } else {
     pos = x + (ypos * 84);
   }
-  
+
   if (value == 1) {
     buffer[pos] |= 1 << (y % 8);
   } else {
@@ -208,15 +212,15 @@ void setPixel(int x , int y, int value) {
 }
 
 int printChar(int x, int y, char value) {
-  if (y < 0 || y > 39 || x < 0 || x > 77){
+  if (y < 0 || y > 39 || x < 0 || x > 77) {
     return -1;
   }
-  
+
   for (int i = 0; i < 6; i++) {
     for (int j = 0; j < 8; j++) {
-      int val = font[value-32][i] & (1 << j);
+      int val = font[value - 32][i] & (1 << j);
       int val2 = 0;
-      if (val > 0){
+      if (val > 0) {
         val2 = 1;
       }
       setPixel(x + i, y + j, val2);
@@ -225,15 +229,87 @@ int printChar(int x, int y, char value) {
   }
 }
 
-int printString(int x, int y, char* c_str){
+int printString(int x, int y, char* c_str) {
   char * t;
   int i = 0;
-   for (t = c_str; *t != '\0'; t++) {
-    if (printChar(x+i*6,y,*t) == -1){
+  for (t = c_str; *t != '\0'; t++) {
+    if (printChar(x + i * 6, y, *t) == -1) {
       return -1;
     }
     i++;
   }
 }
 
+void parser(char newChar) {
+  static String currentCommand;
+  currentCommand += newChar;
+
+  if (newChar == '\n') {
+    Serial.println("INPUT: " + currentCommand);
+
+    //Befehl verarbeiten
+    int firstBracket = currentCommand.indexOf("(");
+    int lastBracket = currentCommand.indexOf(")");
+    String befehl = currentCommand.substring(0, firstBracket);
+    String parameter = currentCommand.substring(firstBracket + 1, lastBracket);
+
+    Serial.println("CMD: " + befehl);
+
+    float parameterarray[10];
+    int parametercount = 0;
+    int comma = parameter.indexOf(",");
+    while (parameter.length() > 0) {
+      String parameterstring = parameter.substring(0, comma);
+      parameterarray[parametercount] = parameterstring.toFloat();
+
+      Serial.println("ARG_" + String(parametercount) + ":" + String(parameterarray[parametercount]));
+
+      if (comma != -1) {
+        parameter = parameter.substring(comma + 1);
+      } else {
+        parameter = "";
+      }
+      comma = parameter.indexOf(",");
+      parametercount++;
+    }
+
+    if (befehl == "help" && parametercount == 0) {
+      Serial.println("Befehle:");
+      Serial.println("help()");
+      Serial.println("setContrast(value)");
+      Serial.println("clearDisplay()");
+      Serial.println("runRotatingBarDemo()");
+      Serial.println("runStudentIdDemo()");
+      Serial.println("stopDemo()");
+    }
+    else if (befehl == "setContrast" && parametercount == 1) {
+      float con = parameterarray[0]*100.0;
+      float contrast = (64.0/100.0)*con;
+      //printf("Contrast= %f \n", con);
+      Serial.println(contrast);
+      digitalWrite(PIN_DC, LOW);
+      SPI.beginTransaction(PIN_CS, SPISettings(1000000, MSBFIRST, SPI_MODE0));
+      SPI.transfer(PIN_CS, 128 + (int)((64.0/100)*con)); // SET CONTRAST (V_OP = 6,18 V)
+      SPI.endTransaction();
+
+      digitalWrite(PIN_DC, HIGH);
+    }
+    else if (befehl == "clearDisplay" && parametercount == 0) {
+      clearDisplay();
+    }
+    else if (befehl == "runRotatingBarDemo" && parametercount == 0) {
+
+    }
+    else if (befehl == "runStudentIdDemo" && parametercount == 0) {
+      runStudentIdDemo();
+    }
+    else if (befehl == "stopDemo" && parametercount == 0) {
+
+    } else {
+      Serial.println("Unknown Command");
+    }
+
+    currentCommand = "";
+  }
+}
 
