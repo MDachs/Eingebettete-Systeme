@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include <DueTimer.h>
+#include <SD.h>
 
 DueTimer timer;
 DueTimer timer2;
@@ -7,6 +8,8 @@ DueTimer timer2;
 const int PIN_RST = 9;
 const int PIN_CS = 10; // SCE PIN
 const int PIN_DC = 3;
+
+const int PIN_SD = 4;
 
 uint8_t buffer[6 * 84];
 
@@ -115,6 +118,7 @@ void setup() {
   pinMode(PIN_DC, OUTPUT);
 
   SPI.begin(PIN_CS);
+  SD.begin(PIN_SD);
   Serial.begin(115200);
 
   // Reset durchführen
@@ -232,7 +236,7 @@ void loop() {
     SPI.transfer(PIN_CS, buffer[i]);
     SPI.endTransaction();
   }
- // delay(1);
+  // delay(1);
 
   while (Serial.available() > 0) {
     char ch = Serial.read();
@@ -301,6 +305,10 @@ int printString(int x, int y, char* c_str) {
   char * t;
   int i = 0;
   for (t = c_str; *t != '\0'; t++) {
+    if (*t == '\n' || i > 13) {
+      y += 8;
+      continue;
+    }
     if (printChar(x + i * 6, y, *t) == -1) {
       return -1;
     }
@@ -324,11 +332,13 @@ void parser(char newChar) {
     Serial.println("CMD: " + befehl);
 
     float parameterarray[10];
+    String paraStringarray[10];
     int parametercount = 0;
     int comma = parameter.indexOf(",");
     while (parameter.length() > 0) {
       String parameterstring = parameter.substring(0, comma);
       parameterarray[parametercount] = parameterstring.toFloat();
+      paraStringarray[parametercount] = parameterstring;
 
       Serial.println("ARG_" + String(parametercount) + ":" + String(parameterarray[parametercount]));
 
@@ -374,7 +384,109 @@ void parser(char newChar) {
       runStudent = false;
       runRotating = false;
       clearDisplay();
-    } else {
+    } else if (befehl == "listDirectory" && parametercount == 1) {
+      String arg = paraStringarray[0];
+      File loc = SD.open(arg);
+      while (true) {
+        File entry =  loc.openNextFile();
+        if (! entry) {
+          // no more files
+          break;
+        }
+        Serial.print(entry.name());
+        if (entry.isDirectory()) {
+          Serial.println("/");
+
+        } else {
+          // files have sizes, directories do not
+          Serial.print(" ");
+          Serial.println(entry.size(), DEC);
+        }
+        entry.close();
+      }
+
+    } else if (befehl == "doesFileExists" && parametercount == 1) {
+      String arg = paraStringarray[0];
+      File loc = SD.open(arg);
+      if (!loc) {
+        Serial.println(arg + " :Existiert nicht");
+      } else {
+        Serial.println(arg + " Existiert");
+      }
+      loc.close();
+
+    } else if (befehl == "outputFileToSerial" && parametercount == 1) {
+      String arg = paraStringarray[0];
+      File loc = SD.open(arg);
+      if (!loc) {
+        Serial.println(arg + " :Existiert nicht");
+      } else {
+        while (loc.available()) {
+          Serial.write(loc.read());
+        }
+        // close the file:
+        loc.close();
+      }
+
+    } else if (befehl == "outputFileToLCD" && parametercount == 1) {
+      String arg = paraStringarray[0];
+      File loc = SD.open(arg);
+      if (!loc) {
+        Serial.println(arg + " :Existiert nicht");
+      } else {
+        if (arg.endsWith(".TXT")) {
+          char tmp2[4000];
+          char *ptr = &tmp2[0];
+          while (loc.available()) {
+            loc.read(ptr, 1);
+            ptr++;
+          }
+
+          if (printString(0, 0, tmp2) == -1) {
+            clearDisplay();
+            printString(0, 0, "TXT_SIZE_ERR");
+          }
+        }
+        if (arg.endsWith(".IMG")) {
+          char tmp2[4000];
+          char *ptr = &tmp2[0];
+          while (loc.available()) {
+            loc.read(ptr, 1);
+            ptr++;
+          }
+
+          String str(tmp2);
+          char* tmp1 = strtok(tmp2, "\n");
+          char* picsize = &(*tmp1);
+          tmp1 = strtok (NULL, "\n");
+          char* data = &(*tmp1);
+
+          int xSize = atoi(strtok(picsize, ","));
+          int ySize = atoi(strtok(NULL, ","));
+
+          int x = 0;
+          int y = 0;
+          
+          tmp1 = strtok (data, ",");
+          while(tmp1 != NULL){
+            if (x >= xSize){
+              x = 0;
+              y++;
+            }
+
+            setPixel(x, y, atoi(tmp1));
+            
+            x++;
+            tmp1 = strtok (NULL, ",");
+          }
+
+        }
+        // close the file:
+        loc.close();
+      }
+
+    }
+    else {
       Serial.println("Unknown Command");
     }
 
