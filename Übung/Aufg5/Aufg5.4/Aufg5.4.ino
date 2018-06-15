@@ -284,7 +284,7 @@ void setPixel(int x , int y, int value) {
 }
 
 int printChar(int x, int y, char value) {
-  if (y < 0 || y > 39 || x < 0 || x > 77) {
+  if (y < 0 || y > 47 || x < 0 || x > 83) {
     return -1;
   }
 
@@ -307,6 +307,7 @@ int printString(int x, int y, char* c_str) {
   for (t = c_str; *t != '\0'; t++) {
     if (*t == '\n' || i > 13) {
       y += 8;
+      i = 0;
       continue;
     }
     if (printChar(x + i * 6, y, *t) == -1) {
@@ -386,6 +387,7 @@ void parser(char newChar) {
       clearDisplay();
     } else if (befehl == "listDirectory" && parametercount == 1) {
       String arg = paraStringarray[0];
+      Serial.println(arg);
       File loc = SD.open(arg);
       while (true) {
         File entry =  loc.openNextFile();
@@ -435,12 +437,18 @@ void parser(char newChar) {
         Serial.println(arg + " :Existiert nicht");
       } else {
         if (arg.endsWith(".TXT")) {
-          char tmp2[4000];
+          char tmp2[14*6+10];
           char *ptr = &tmp2[0];
+          int i = 0;
           while (loc.available()) {
             loc.read(ptr, 1);
             ptr++;
+            i++;
+            if (i >= 14*6+10){
+              break;
+            }
           }
+          *ptr = '\0';
 
           if (printString(0, 0, tmp2) == -1) {
             clearDisplay();
@@ -448,6 +456,7 @@ void parser(char newChar) {
           }
         }
         if (arg.endsWith(".IMG")) {
+          clearDisplay();
           char tmp2[4000];
           char *ptr = &tmp2[0];
           while (loc.available()) {
@@ -464,13 +473,16 @@ void parser(char newChar) {
           int xSize = atoi(strtok(picsize, ","));
           int ySize = atoi(strtok(NULL, ","));
 
-          int x = 0;
-          int y = 0;
+          int xoffset = 84/2 - xSize/2;
+          int yoffset = 48/2 - ySize/2;
+  
+          int x = xoffset;
+          int y = yoffset;
           
           tmp1 = strtok (data, ",");
           while(tmp1 != NULL){
-            if (x >= xSize){
-              x = 0;
+            if (x >= xSize + xoffset){
+              x = xoffset;
               y++;
             }
 
