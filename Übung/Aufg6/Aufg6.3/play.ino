@@ -1,13 +1,12 @@
-
-
 int currentPos = 0;
 int currentStep = 0;
-int ysize = 0;
-int xsize = 0;
+
+int xstart = 0;
+int ystart = 0;
 
 void play(){
   if (playing == 1){
-    if (currentPos > 9){
+    if (currentPos >= listSize){
       playing = 0;
       currentPos = 0;
       currentStep = 0;
@@ -15,12 +14,12 @@ void play(){
     }
 
     if (currentStep == 0){
-      xsize = (posList[currentPos].x - xpos) / 100;
-      ysize = (posList[currentPos].y - ypos) / 100;
+      xstart = xpos;
+      ystart = ypos;
     }
 
-    xpos += xsize;
-    ypos += ysize;
+    xpos = xstart + (int)(((float)(posList[currentPos].x - xstart) / 100.0) * (float)currentStep+1);
+    ypos = ystart + (int)(((float)(posList[currentPos].y - ystart) / 100.0) * (float)currentStep+1);
 
     currentStep++;
     if (currentStep > 99){

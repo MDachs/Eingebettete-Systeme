@@ -8,13 +8,14 @@ Servo swingServo;
 DueTimer timer;
 DueTimer timer2;
 
+uint8_t buffer[6 * 84];
+int listSize = 0;
+
+
 //LCD Pins
 const int PIN_RST = 9;
 const int PIN_CS = 10; // SCE PIN
 const int PIN_DC = 3;
-
-const int PIN_SD = 4; //????
-
 
 // joystick stuff
 const int center = 1023 / 2;
@@ -44,7 +45,7 @@ void setup() {
   {
     timer.start();
   }
-  if (timer2.configure(100, play))
+  if (timer2.configure(50, play))
   {
     timer2.start();
   }
@@ -59,12 +60,13 @@ void loop() {
   int xoffset = xOut - center;
   int yoffset = yOut - center;
 
+  //Toleranz
   xoffset = (xoffset > 50 || xoffset < -50) ? xoffset : 0;
   yoffset = (yoffset > 50 || yoffset < -50) ? yoffset : 0;
 
-  //Toleranz
-  xpos -= xoffset / 30;
-  ypos += yoffset / 30;
+  //Sensitivität
+  xpos -= xoffset / 50;
+  ypos += yoffset / 50;
 
   //printf("xout: %d  ", xpos);
   //printf("yout: %d\n", ypos);
@@ -82,6 +84,21 @@ void loop() {
   tiltServo.write(xOut);
   swingServo.write(yOut);
   delay(20);
+
+  char cplay[] = "Playing";
+  char crec[] = "Recording";
+  printString(0,0,(playing) ? cplay : crec);
+
+  char cpos[30] = "";
+  sprintf(cpos, "X: %03d Y: %03d", xOut, yOut);
+  printString(0,8, cpos);
+
+  char csize[30] = "";
+  sprintf(csize, "%03d/%03d", listSize, 10);
+  printString(0,16, csize);
+
+  updateDisplay();
+
 }
 
 

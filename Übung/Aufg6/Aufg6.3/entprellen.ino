@@ -19,7 +19,7 @@ struct pos {
   int y;
 } posList[10];
 
-int listSize = 0;
+
 
 void entprellen(void)
 {
@@ -79,7 +79,16 @@ void entprellen(void)
   last3State = new3State;
 }
 
+//Laser
 void firstReleased() {
+  static bool first = true;
+  if (first) {
+    first = false;
+    return;
+  }
+
+  Serial.println("Laster on/off");
+
   stateFirst = HIGH;
 
   static bool ledState = true;
@@ -88,7 +97,14 @@ void firstReleased() {
 
 }
 
+//Play
 void secondReleased() {
+  static bool first = true;
+  if (first) {
+    first = false;
+    return;
+  }
+  Serial.println("Play");
   stateSecond = HIGH;
 
   if (block == true) {
@@ -96,8 +112,8 @@ void secondReleased() {
     return;
   }
 
-  if (stateFirst == LOW) {
-    //changeState();
+  if (stateThird == LOW) {
+    deletePos();
     block = true;
     return;
   }
@@ -106,7 +122,14 @@ void secondReleased() {
 
 }
 
+//Save Pos
 void thirdReleased() {
+  static bool first = true;
+  if (first) {
+    first = false;
+    return;
+  }
+  Serial.println("Save Pos");
   stateThird = HIGH;
 
   if (block == true) {
@@ -114,8 +137,8 @@ void thirdReleased() {
     return;
   }
 
-  if (stateFirst == LOW) {
-    //changeState();
+  if (stateSecond == LOW) {
+    deletePos();
     block = true;
     return;
   }
@@ -124,6 +147,10 @@ void thirdReleased() {
     posList[listSize++] = {xpos, ypos};
   }
 
+}
+
+void deletePos() {
+  listSize = 0;
 }
 
 void firstPressed() {
