@@ -1,5 +1,6 @@
 #include <Servo.h>
 #include <DueTimer.h>
+#include <SPI.h>
 
 Servo tiltServo;
 Servo swingServo;
@@ -7,6 +8,15 @@ Servo swingServo;
 DueTimer timer;
 DueTimer timer2;
 
+//LCD Pins
+const int PIN_RST = 9;
+const int PIN_CS = 10; // SCE PIN
+const int PIN_DC = 3;
+
+const int PIN_SD = 4; //????
+
+
+// joystick stuff
 const int center = 1023 / 2;
 
 int xpos = center;
@@ -24,6 +34,8 @@ void setup() {
   pinMode(31, INPUT_PULLUP);
   pinMode(43, INPUT_PULLUP);
   pinMode(47, INPUT_PULLUP);
+
+  initLCD();
 
   //LED
   pinMode(26, OUTPUT);
