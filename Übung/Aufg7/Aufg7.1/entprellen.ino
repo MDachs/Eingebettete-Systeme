@@ -7,7 +7,7 @@ int stateFirst = HIGH;
 
 void entprellen(void)
 {
-  int new1State = digitalRead(31);
+  int new1State = digitalRead(6);
   if (new1State != last1State) {
     //State changed
     last1Count = 0;
